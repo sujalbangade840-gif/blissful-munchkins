@@ -41,6 +41,29 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
       setIsPlaying(true);
+      const timer = setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          const playPromise = videoRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => setIsPlaying(true))
+              .catch(() => {
+                // iOS Safari blocks unmuted autoplay without direct interaction
+                if (videoRef.current) {
+                  videoRef.current.muted = true;
+                  setIsMuted(true);
+                  videoRef.current.play().catch(() => setIsPlaying(false));
+                }
+              });
+          }
+        }
+      }, 150);
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = 'unset';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -48,7 +71,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, videoUrl]);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -140,6 +163,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
               controls={false}
               autoPlay
               playsInline
+              muted={isMuted}
               preload="metadata"
               onClick={togglePlay}
               onTimeUpdate={handleTimeUpdate}
