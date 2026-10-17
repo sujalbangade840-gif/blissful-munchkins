@@ -29,7 +29,9 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasVideoError, setHasVideoError] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
 
@@ -41,24 +43,39 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
       setIsPlaying(true);
+      setIsLoading(true);
+      setHasVideoError(false);
+
       const timer = setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.currentTime = 0;
-          const playPromise = videoRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => setIsPlaying(true))
-              .catch(() => {
-                // iOS Safari blocks unmuted autoplay without direct interaction
-                if (videoRef.current) {
-                  videoRef.current.muted = true;
-                  setIsMuted(true);
-                  videoRef.current.play().catch(() => setIsPlaying(false));
-                }
-              });
-          }
+        const video = videoRef.current;
+        if (video) {
+          video.muted = isMuted;
+          video
+            .play()
+            .then(() => {
+              setIsPlaying(true);
+              setIsLoading(false);
+            })
+            .catch(() => {
+              // Browser blocked unmuted autoplay; ensure muted playback succeeds
+              if (video) {
+                video.muted = true;
+                setIsMuted(true);
+                video
+                  .play()
+                  .then(() => {
+                    setIsPlaying(true);
+                    setIsLoading(false);
+                  })
+                  .catch(() => {
+                    setIsPlaying(false);
+                    setIsLoading(false);
+                  });
+              }
+            });
         }
-      }, 150);
+      }, 50);
+
       return () => {
         clearTimeout(timer);
         document.body.style.overflow = 'unset';
@@ -99,6 +116,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+      setIsLoading(false);
     }
   };
 
@@ -156,25 +174,88 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                 : 'aspect-video w-full'
             }`}
           >
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              poster={poster}
-              controls={false}
-              autoPlay
-              playsInline
-              muted={isMuted}
-              preload="metadata"
-              onClick={togglePlay}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleLoadedMetadata}
-              className="w-full h-full object-contain cursor-pointer"
-            >
-              Your browser does not support HTML video.
-            </video>
+            {videoUrl && !hasVideoError ? (
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                poster={poster}
+                controls={false}
+                autoPlay
+                playsInline
+                loop
+                muted={isMuted}
+                preload="auto"
+                onClick={togglePlay}
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleLoadedMetadata}
+                onWaiting={() => setIsLoading(true)}
+                onPlaying={() => {
+                  setIsLoading(false);
+                  setIsPlaying(true);
+                }}
+                onLoadedData={() => setIsLoading(false)}
+                onError={() => {
+                  setIsLoading(false);
+                  setHasVideoError(true);
+                }}
+                className="w-full h-full object-contain cursor-pointer"
+              >
+                Your browser does not support HTML video.
+              </video>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-900 w-full h-full text-white">
+                <p className="text-sm font-semibold mb-2">Video could not be loaded</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasVideoError(false);
+                    setIsLoading(true);
+                    if (videoRef.current) {
+                      videoRef.current.load();
+                      videoRef.current.play().catch(() => {});
+                    }
+                  }}
+                  className="px-4 py-1.5 rounded-full bg-[#FF7893] text-white text-xs font-bold"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* Buffering Loading Spinner */}
+            {isLoading && !hasVideoError && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 z-20 pointer-events-none">
+                <div className="w-10 h-10 border-3 border-pink-400 border-t-transparent rounded-full animate-spin mb-2" />
+                <span className="text-xs text-white/90 font-medium">Loading Video...</span>
+              </div>
+            )}
+
+            {/* Tap to Unmute Pill */}
+            {isMuted && !isLoading && !hasVideoError && (
+              <button
+                type="button"
+                onClick={toggleMute}
+                className="absolute top-4 left-4 z-20 px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 border border-white/20 animate-pulse hover:bg-black/90 cursor-pointer shadow-lg"
+              >
+                <VolumeX className="w-3.5 h-3.5 text-[#FF7893]" />
+                <span>Tap for Sound 🔊</span>
+              </button>
+            )}
+
+            {/* Play Button Overlay When Paused */}
+            {!isPlaying && !isLoading && !hasVideoError && (
+              <div
+                onClick={togglePlay}
+                className="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer z-10"
+              >
+                <div className="w-16 h-16 rounded-full bg-[#FF7893] text-white flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+                  <Play className="w-8 h-8 ml-1 fill-white" />
+                </div>
+              </div>
+            )}
 
             {/* Custom Minimalist Overlay Controls */}
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 sm:p-4 flex flex-col gap-2">
+            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 sm:p-4 flex flex-col gap-2 z-20">
               {/* Progress Line */}
               <div
                 className="w-full h-1.5 bg-white/30 rounded-full overflow-hidden cursor-pointer"

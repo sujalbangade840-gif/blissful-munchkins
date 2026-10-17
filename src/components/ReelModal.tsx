@@ -18,7 +18,8 @@ export const ReelModal: React.FC<ReelModalProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [liked, setLiked] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [hasVideoError, setHasVideoError] = useState<boolean>(false);
@@ -27,28 +28,41 @@ export const ReelModal: React.FC<ReelModalProps> = ({
     if (!isOpen || !reel) return;
     setLiked(false);
     setIsPlaying(true);
+    setIsLoading(true);
     setProgress(0);
     setHasVideoError(false);
 
-    // If modal is opened, play video
-    const timeout = setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.currentTime = 0;
-        videoRef.current
+    const timer = setTimeout(() => {
+      const video = videoRef.current;
+      if (video) {
+        video.muted = isMuted;
+        video
           .play()
-          .then(() => setIsPlaying(true))
+          .then(() => {
+            setIsPlaying(true);
+            setIsLoading(false);
+          })
           .catch(() => {
-            // Browsers may block unmuted autoplay, fallback to muted autoplay
-            if (videoRef.current) {
-              videoRef.current.muted = true;
+            // Autoplay with sound blocked; ensure muted playback succeeds
+            if (video) {
+              video.muted = true;
               setIsMuted(true);
-              videoRef.current.play().catch(() => setIsPlaying(false));
+              video
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                  setIsLoading(false);
+                })
+                .catch(() => {
+                  setIsPlaying(false);
+                  setIsLoading(false);
+                });
             }
           });
       }
-    }, 150);
+    }, 50);
 
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(timer);
   }, [isOpen, reel]);
 
   const togglePlay = () => {
@@ -104,31 +118,73 @@ export const ReelModal: React.FC<ReelModalProps> = ({
       {/* Reel Phone Container (9:16 aspect ratio) */}
       <div className="relative w-full max-w-[360px] sm:max-w-[400px] h-[78vh] sm:h-[84vh] rounded-[36px] overflow-hidden shadow-2xl border-4 border-white/20 bg-black flex flex-col justify-between select-none">
         {/* Real Video Player or Poster Fallback */}
-        <div className="absolute inset-0 -z-10 bg-black flex items-center justify-center">
+        <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
           {reel.videoUrl && !hasVideoError ? (
             <video
               ref={videoRef}
               src={reel.videoUrl}
-              poster={reel.posterImage || reel.fallbackPoster}
               playsInline
               loop
+              autoPlay
               muted={isMuted}
+              preload="auto"
               onTimeUpdate={handleTimeUpdate}
-              onError={() => setHasVideoError(true)}
+              onWaiting={() => setIsLoading(true)}
+              onPlaying={() => {
+                setIsLoading(false);
+                setIsPlaying(true);
+              }}
+              onLoadedData={() => setIsLoading(false)}
+              onError={() => {
+                setIsLoading(false);
+                setHasVideoError(true);
+              }}
               className="w-full h-full object-cover"
             />
           ) : (
-            <SafeImage
-              localSrc={reel.posterImage}
-              fallbackSrc={reel.fallbackPoster}
-              alt={reel.title}
-              className="w-full h-full object-cover scale-105"
-            />
+            <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-900 w-full h-full text-white">
+              <AlertCircle className="w-10 h-10 text-pink-400 mb-2" />
+              <p className="text-sm font-semibold mb-1">Unable to load video</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setHasVideoError(false);
+                  setIsLoading(true);
+                  if (videoRef.current) {
+                    videoRef.current.load();
+                    videoRef.current.play().catch(() => {});
+                  }
+                }}
+                className="mt-3 px-4 py-1.5 rounded-full bg-[#FF7893] text-white text-xs font-bold"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Buffering Loading Indicator */}
+          {isLoading && !hasVideoError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 z-20 pointer-events-none">
+              <div className="w-9 h-9 border-3 border-pink-400 border-t-transparent rounded-full animate-spin mb-2" />
+              <span className="text-xs text-white/90 font-medium tracking-wide">Loading Reel...</span>
+            </div>
           )}
 
           {/* Subtle cinematic gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none z-10" />
         </div>
+
+        {/* Tap to Unmute Pill */}
+        {isMuted && !isLoading && !hasVideoError && (
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="absolute top-20 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 border border-white/20 animate-pulse hover:bg-black/90 cursor-pointer shadow-lg"
+          >
+            <VolumeX className="w-3.5 h-3.5 text-[#FF7893]" />
+            <span>Tap for Sound 🔊</span>
+          </button>
+        )}
 
         {/* Top bar with story progress line and details */}
         <div className="p-4 pt-5 z-10">

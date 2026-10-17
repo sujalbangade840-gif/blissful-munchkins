@@ -112,7 +112,28 @@ export const BTSSection: React.FC = () => {
           {BTS_DATA.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-3xl overflow-hidden border border-pink-100/80 soft-shadow transition-all duration-300 hover:-translate-y-1 group"
+              onClick={() => {
+                if (item.videoUrl) {
+                  setActiveVideo({
+                    id: item.id,
+                    title: item.title,
+                    description: item.caption,
+                    videoUrl: item.videoUrl,
+                    duration: '0:30',
+                    aspectRatio: '9:16',
+                    category: 'Behind the Scenes & Safety',
+                    location: 'Nagpur Studio & Outdoor Session',
+                    photographer: 'Ashwin Bangade',
+                    highlights: [
+                      item.title,
+                      item.caption,
+                      'Baby-first comfort & safety protocol',
+                      'Gentle unhurried photography by Ashwin Bangade',
+                    ],
+                  });
+                }
+              }}
+              className="bg-white rounded-3xl overflow-hidden border border-pink-100/80 soft-shadow transition-all duration-300 hover:-translate-y-1 group cursor-pointer"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-slate-900">
                 {item.videoUrl ? (
@@ -130,8 +151,17 @@ export const BTSSection: React.FC = () => {
                 <div className="absolute top-4 left-4 w-9 h-9 rounded-2xl bg-white/95 backdrop-blur-sm shadow-sm flex items-center justify-center text-xs font-bold text-[#FF7893] z-10 pointer-events-none">
                   {item.step}
                 </div>
-                <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-xs text-[10px] text-white/90 font-medium z-10 pointer-events-none">
-                  Hover to Preview
+
+                {/* Center Play Button Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-12 h-12 rounded-full bg-[#FF7893] text-white flex items-center justify-center shadow-lg group-hover:scale-115 transition-transform duration-300">
+                    <Play className="w-5 h-5 ml-0.5 fill-white" />
+                  </div>
+                </div>
+
+                <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-md bg-black/75 backdrop-blur-xs text-[10px] text-white font-medium z-10 pointer-events-none flex items-center gap-1">
+                  <Play className="w-3 h-3 fill-white" />
+                  <span>Click to Play</span>
                 </div>
               </div>
 
@@ -142,6 +172,10 @@ export const BTSSection: React.FC = () => {
                 <p className="text-xs sm:text-sm text-[#4A4A4A] leading-relaxed">
                   {item.caption}
                 </p>
+                <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[#FF7893] group-hover:translate-x-1 transition-transform">
+                  <span>Watch BTS Video</span>
+                  <span>→</span>
+                </div>
               </div>
             </div>
           ))}
