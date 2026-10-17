@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-vibrant-pink: #FF7893;
+  --color-vibrant-pink-hover: #ff6584;
+  --color-vibrant-blue: #60A5FA;
+  --color-vibrant-dark: #2D2D2D;
+  --color-vibrant-charcoal: #4A4A4A;
+  --color-brand-warm: #FFFBFB;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: #FFFBFB;
+    color: #4A4A4A;
+    background-image: radial-gradient(circle at 10% 10%, #FDF2F8 0%, transparent 45%), radial-gradient(circle at 90% 90%, #EFF6FF 0%, transparent 45%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, .serif-text {
+    font-family: var(--font-serif);
+    color: #2D2D2D;
+  }
+}
+
+/* Vibrant Palette Specific Classes */
+.serif-text {
+  font-family: 'Playfair Display', 'Georgia', serif;
+}
+
+.soft-shadow {
+  box-shadow: 0 20px 40px -15px rgba(255, 120, 147, 0.22);
+}
+
+.soft-shadow-blue {
+  box-shadow: 0 20px 40px -15px rgba(96, 165, 250, 0.22);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.floating {
+  animation: float 6s ease-in-out infinite;
+}
+
+.floating-delayed {
+  animation: float 6s ease-in-out infinite 2s;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.photo-card {
+  transform: perspective(1000px) rotateY(-8deg) rotateX(4deg);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.photo-card:hover {
+  transform: perspective(1000px) rotateY(0deg) rotateX(0deg) scale(1.02);
+}
+
+/* 3D and Perspective utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Smooth custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #fdf8f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #fbcfe8;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF7893;
+}
